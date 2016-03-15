@@ -8,8 +8,7 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 
-#define DEFAULT_PORT_NUM 7768
-#define NUM_OF_CONNECTIONS 5
+#imclude "server.h"
 
 int main ( int argc, char ** argv )
 {
@@ -36,7 +35,6 @@ int main ( int argc, char ** argv )
 	/* Listener */
 	listen( socket_fd, NUM_OF_CONNECTIONS );
 	cli_len = sizeof(cli_addr);
-
 	printf("Listening on port %d...\n", portn);
 
 	/* Accepting incoming */
@@ -44,10 +42,9 @@ int main ( int argc, char ** argv )
 	if ( new_socket_fd < 0 ) { printf("ACCEPT() error. \n"); exit(1); }
 
 
-
 	for (;;)
 	{
-		printf("ping...");
+		printf("pong...");
 		sleep(3000);
 	} /* Here goes actual loop */
 

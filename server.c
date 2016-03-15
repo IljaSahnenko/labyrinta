@@ -8,7 +8,7 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 
-#imclude "server.h"
+#include "server.h"
 
 int main ( int argc, char ** argv )
 {
@@ -42,10 +42,9 @@ int main ( int argc, char ** argv )
 	if ( new_socket_fd < 0 ) { printf("ACCEPT() error. \n"); exit(1); }
 
 
-	for (;;)
+	for (;;sleep(10))
 	{
-		printf("pong...");
-		sleep(3000);
+		printf("tick...");
 	} /* Here goes actual loop */
 
 

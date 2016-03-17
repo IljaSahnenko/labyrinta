@@ -1,11 +1,10 @@
 CC = cc
-# LIBS =
-FLAGS = -O2 -w --std=c99
+FLAGS = -O2 -Wall --std=c99
 NAME = server
 
 
 server: $(NAME).c
-	$(CC) $(FLAGS) -o $@ $? $(LIBS)
+	$(CC) $(FLAGS) -o $@ $?
 
 clean:
 	rm $(NAME)

@@ -14,4 +14,4 @@ client: $(CL_NAME).cpp
 	$(CPP) $(CFLAGS) -o $@ $?
 
 clean:
-	rm $(NAME)
+	rm $(SV_NAME) $(CL_NAME)

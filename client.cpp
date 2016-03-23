@@ -176,5 +176,5 @@ int main()
 	SDL_DestroyRenderer(ren);
 	SDL_DestroyWindow(win);
 	SDL_Quit();
-	return 1;
+	return 0;
 }

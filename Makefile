@@ -1,17 +1,22 @@
 CC = cc
 CPP = g++
 FLAGS = -O2 -Wall --std=c99
-CFLAGS = -O2 -lSDL2 -Wall
+CFLAGS = -O2 -Wall
 SV_NAME = server
 CL_NAME = client
+SDL_CFLAGS := $(shell sdl2-config --cflags)
+SDL_LDFLAGS := $(shell sdl2-config --libs)
 
-all:
+# all:
+
+client: $(CL_NAME).cpp
+#	$(CPP) $(CFLAGS) -o $@ $?
+	$(CPP) $(CFLAGS) -Wall $(SDL_CFLAGS) $(SDL_LDFLAGS) -o $@ $?
+
 
 server: $(SV_NAME).c
 	$(CC) $(FLAGS) -o $@ $?
 
-client: $(CL_NAME).cpp
-	$(CPP) $(CFLAGS) -o $@ $?
 
 clean:
-	rm $(SV_NAME) $(CL_NAME)
+	rm -f $(SV_NAME) $(CL_NAME)

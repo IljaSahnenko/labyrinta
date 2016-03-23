@@ -1,10 +1,17 @@
 CC = cc
+CPP = g++
 FLAGS = -O2 -Wall --std=c99
-NAME = server
+CFLAGS = -O2 -lSDL2 -Wall
+SV_NAME = server
+CL_NAME = client
 
+all:
 
-server: $(NAME).c
+server: $(SV_NAME).c
 	$(CC) $(FLAGS) -o $@ $?
+
+client: $(CL_NAME).cpp
+	$(CPP) $(CFLAGS) -o $@ $?
 
 clean:
 	rm $(NAME)

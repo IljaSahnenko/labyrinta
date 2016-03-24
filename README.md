@@ -1,7 +1,12 @@
 # labyrinta
+=====
+## Dependencies
+	(*) SDL2
+	(*) SDL2-image
 
 ## Installing
 
-On linux: ``make`` for making client;
-``make server`` for making server;
-``make clean``
+### On linux:
+``make`` for compiling client;
+``make server`` for compiling server;
+``make clean`` for removing binaries.

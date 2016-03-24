@@ -76,7 +76,7 @@ int main ( int argc, char ** argv )
 	}
 
 
-	for (;; sleep(10))
+	for (;; usleep(1000000))
 	{
 		printf("tick...");
 	} /* Here goes actual loop */

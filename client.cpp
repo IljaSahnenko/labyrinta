@@ -3,12 +3,12 @@
 #include <SDL2/SDL_rect.h>
 #include <SDL2/SDL_render.h>
 #include <SDL2/SDL_rwops.h>
+#include <SDL2/SDL_video.h>
 #include <iomanip>
 #include <iostream>
 #include <stdio.h>
 #include <stdlib.h>
 #include <xcb/render.h>
-#include <SDL2/SDL_video.h>
 
 #include <unistd.h>
 

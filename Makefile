@@ -20,4 +20,4 @@ server: $(SV_NAME).c
 
 
 clean:
-	rm -f $(SV_NAME) $(CL_NAME)
+	rm -f $(SV_NAME) $(CL_NAME) example_client

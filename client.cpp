@@ -7,7 +7,7 @@
 #include <iostream>
 #include <stdio.h>
 #include <stdlib.h>
-#include </usr/include/xcb/render.h>
+#include <xcb/render.h>
 #include <SDL2/SDL_video.h>
 
 #include <unistd.h>

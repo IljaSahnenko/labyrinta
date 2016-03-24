@@ -71,7 +71,7 @@ int main ( int argc, char ** argv )
 	new_socket_fd = accept( socket_fd, (struct sockaddr *) &cli_addr, &cli_len );
 	if ( new_socket_fd < 0 )
 	{
-		printf("ACCEPT() error. \n");
+		printf( "ERROR\n" );
 		exit(1);
 	}
 

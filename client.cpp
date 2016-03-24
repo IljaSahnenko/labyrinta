@@ -111,7 +111,7 @@ int main()
 	render_UPDATE(ren, ARRAY_textures, ARRAY_rect, ARRAY_texturesState);	//Написанная нами функция обновления рендера
 		SDL_RenderPresent(ren);
 */
-	SDL_Texture *player =  IMG_LoadTexture(ren,"..\\res\\player.png");
+	SDL_Texture *player =  IMG_LoadTexture(ren,"./player.png");
 
 	SDL_Surface *BMP_background = SDL_LoadBMP("..\\res\\background.bmp");
 	if (BMP_background == NULL)

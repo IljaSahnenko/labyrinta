@@ -11,7 +11,7 @@ SDL_LDFLAGS := $(shell sdl2-config --libs)
 
 client: $(CL_NAME).cpp
 #	$(CPP) $(CFLAGS) -o $@ $?
-	$(CPP) $(CFLAGS) -Wall $(SDL_CFLAGS) $(SDL_LDFLAGS) -o $@ $?
+	$(CPP) $(CFLAGS) $(SDL_CFLAGS) $(SDL_LDFLAGS) -o $@ $?
 
 
 server: $(SV_NAME).c

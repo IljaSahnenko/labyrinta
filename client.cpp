@@ -1,179 +1,573 @@
-/*
- * test.cxx
- *
- * Copyright 2016 nod <nod@nod-Lenovo-G580>
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
- * MA 02110-1301, USA.
- *
- *
- */
 
-
+//Using SDL, SDL_image, standard IO, and strings
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
-#include <SDL2/SDL_rect.h>
-#include <SDL2/SDL_render.h>
-#include <SDL2/SDL_rwops.h>
-#include <iomanip>
-#include <iostream>
 #include <stdio.h>
-#include <stdlib.h>
-#include <xcb/render.h>
+#include <string>
+#include <iostream>
 
-SDL_DisplayMode displayMode;
+//Screen dimension constants
+const int SCREEN_WIDTH = 640;
+const int SCREEN_HEIGHT = 480;
 
-int request = SDL_GetDesktopDisplayMode(0,&displayMode);
-const int player_WIGHT = 333;
-const int player_HEIGH = 227;
-double TESTtexture_SCALE = 1.0;
-const Uint8 *keyboardState = SDL_GetKeyboardState(NULL);
+//Texture wrapper class
+class LTexture
+{
+	public:
+		//Initializes variables
+		LTexture();
 
-void move_UP   (SDL_Renderer* render, SDL_Texture* texture, SDL_Rect &destrect, int offset = 5)
+		//Deallocates memory
+		~LTexture();
+
+		//Loads image at specified path
+		bool loadFromFile( std::string path );
+		
+		#ifdef _SDL_TTF_H
+		//Creates image from font string
+		bool loadFromRenderedText( std::string textureText, SDL_Color textColor );
+		#endif
+
+		//Deallocates texture
+		void free();
+
+		//Set color modulation
+		void setColor( Uint8 red, Uint8 green, Uint8 blue );
+
+		//Set blending
+		void setBlendMode( SDL_BlendMode blending );
+
+		//Set alpha modulation
+		void setAlpha( Uint8 alpha );
+		
+		//Renders texture at given point
+		void render( int x, int y, SDL_Rect* clip = NULL, double angle = 0.0, SDL_Point* center = NULL, SDL_RendererFlip flip = SDL_FLIP_NONE );
+
+		//Gets image dimensions
+		int getWidth();
+		int getHeight();
+
+	private:
+		//The actual hardware texture
+		SDL_Texture* mTexture;
+
+		//Image dimensions
+		int mWidth;
+		int mHeight;
+};
+
+//The dot that will move around on the screen
+class Dot
 {
-	destrect.y -= offset;
-	SDL_RenderClear(render);
-	SDL_RenderCopy(render, texture,NULL,&destrect);
-}
-void move_DOWN (SDL_Renderer* render, SDL_Texture* texture, SDL_Rect &destrect, int offset = 5)
+    public:
+		//The dimensions of the dot
+		static const int DOT_WIDTH = 20;
+		static const int DOT_HEIGHT = 20;
+
+		//Maximum axis velocity of the dot
+		static const int DOT_VEL = 4;
+
+		//Initializes the variables
+		Dot();
+
+		//Takes key presses and adjusts the dot's velocity
+		void handleEvent( SDL_Event& e );
+
+		//Moves the dot and checks collision
+		void move( SDL_Rect& wall );
+
+		//Shows the dot on the screen
+		void render();
+
+    private:
+		//The X and Y offsets of the dot
+		int mPosX, mPosY;
+
+		//The velocity of the dot
+		int mVelX, mVelY;
+		
+		//Dot's collision box
+		SDL_Rect mCollider;
+};
+
+//Starts up SDL and creates window
+bool init();
+
+//Loads media
+bool loadMedia();
+
+//Frees media and shuts down SDL
+void close();
+
+//Box collision detector
+bool checkCollision( SDL_Rect a, SDL_Rect b );
+
+//The window we'll be rendering to
+SDL_Window* gWindow = NULL;
+
+//The window renderer
+SDL_Renderer* gRenderer = NULL;
+
+//Scene textures
+LTexture gDotTexture;
+
+LTexture::LTexture()
 {
-	destrect.y += offset;
-	SDL_RenderClear(render);
-	SDL_RenderCopy(render, texture,NULL,&destrect);
-}
-void move_LEFT (SDL_Renderer* render, SDL_Texture* texture, SDL_Rect &destrect, int offset = 5)
-{
-	destrect.x -= offset;
-	SDL_RenderClear(render);
-	SDL_RenderCopy(render, texture,NULL,&destrect);
-}
-void move_RIGHT(SDL_Renderer* render, SDL_Texture* texture, SDL_Rect &destrect, int offset = 5)
-{
-	destrect.x += offset;
-	SDL_RenderClear(render);
-	SDL_RenderCopy(render, texture,NULL,&destrect);
+	//Initialize
+	mTexture = NULL;
+	mWidth = 0;
+	mHeight = 0;
 }
 
-void render_UPDATE(SDL_Renderer* render, SDL_Texture* texture[], SDL_Rect* destrect[], int states[])
+LTexture::~LTexture()
 {
-	SDL_RenderClear(render);
-	if(states[0]) SDL_RenderCopy(render, texture[0],NULL,destrect[0]);
-	if(states[1]) SDL_RenderCopy(render, texture[1],NULL,destrect[1]);
+	//Deallocate
+	free();
 }
 
-int main()
+bool LTexture::loadFromFile( std::string path )
 {
+	//Get rid of preexisting texture
+	free();
+
+	//The final texture
+	SDL_Texture* newTexture = NULL;
+
+	//Load image at specified path
+	SDL_Surface* loadedSurface = IMG_Load( path.c_str() );
+	if( loadedSurface == NULL )
+	{
+		printf( "Unable to load image %s! SDL_image Error: %s\n", path.c_str(), IMG_GetError() );
+	}
+	else
+	{
+		//Color key image
+		SDL_SetColorKey( loadedSurface, SDL_TRUE, SDL_MapRGB( loadedSurface->format, 0, 0xFF, 0xFF ) );
+
+		//Create texture from surface pixels
+        newTexture = SDL_CreateTextureFromSurface( gRenderer, loadedSurface );
+		if( newTexture == NULL )
+		{
+			printf( "Unable to create texture from %s! SDL Error: %s\n", path.c_str(), SDL_GetError() );
+		}
+		else
+		{
+			//Get image dimensions
+			mWidth = loadedSurface->w;
+			mHeight = loadedSurface->h;
+		}
+
+		//Get rid of old loaded surface
+		SDL_FreeSurface( loadedSurface );
+	}
+
+	//Return success
+	mTexture = newTexture;
+	return mTexture != NULL;
+}
+
+#ifdef _SDL_TTF_H
+bool LTexture::loadFromRenderedText( std::string textureText, SDL_Color textColor )
+{
+	//Get rid of preexisting texture
+	free();
+
+	//Render text surface
+	SDL_Surface* textSurface = TTF_RenderText_Solid( gFont, textureText.c_str(), textColor );
+	if( textSurface != NULL )
+	{
+		//Create texture from surface pixels
+        mTexture = SDL_CreateTextureFromSurface( gRenderer, textSurface );
+		if( mTexture == NULL )
+		{
+			printf( "Unable to create texture from rendered text! SDL Error: %s\n", SDL_GetError() );
+		}
+		else
+		{
+			//Get image dimensions
+			mWidth = textSurface->w;
+			mHeight = textSurface->h;
+		}
+
+		//Get rid of old surface
+		SDL_FreeSurface( textSurface );
+	}
+	else
+	{
+		printf( "Unable to render text surface! SDL_ttf Error: %s\n", TTF_GetError() );
+	}
+
 	
-	if (SDL_Init(SDL_INIT_EVERYTHING) != 0){
-	std::cout << "SDL_Init Error: " << SDL_GetError() << std::endl;
-	return 1;
+	//Return success
+	return mTexture != NULL;
+}
+#endif
+
+void LTexture::free()
+{
+	//Free texture if it exists
+	if( mTexture != NULL )
+	{
+		SDL_DestroyTexture( mTexture );
+		mTexture = NULL;
+		mWidth = 0;
+		mHeight = 0;
+	}
 }
 
-
-	SDL_Window *win = SDL_CreateWindow("Hello World!", 100, 100, 640, 480, SDL_WINDOW_SHOWN);
-if (win == NULL){
-	std::cout << "SDL_CreateWindow Error: " << SDL_GetError() << std::endl;
-	return 1;
+void LTexture::setColor( Uint8 red, Uint8 green, Uint8 blue )
+{
+	//Modulate texture rgb
+	SDL_SetTextureColorMod( mTexture, red, green, blue );
 }
-	SDL_Renderer *ren = SDL_CreateRenderer(win, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+
+void LTexture::setBlendMode( SDL_BlendMode blending )
+{
+	//Set blending function
+	SDL_SetTextureBlendMode( mTexture, blending );
+}
+		
+void LTexture::setAlpha( Uint8 alpha )
+{
+	//Modulate texture alpha
+	SDL_SetTextureAlphaMod( mTexture, alpha );
+}
+
+void LTexture::render( int x, int y, SDL_Rect* clip, double angle, SDL_Point* center, SDL_RendererFlip flip )
+{
+	//Set rendering space and render to screen
+	SDL_Rect renderQuad = { x, y, mWidth, mHeight };
+
+	//Set clip rendering dimensions
+	if( clip != NULL )
+	{
+		renderQuad.w = clip->w;
+		renderQuad.h = clip->h;
+	}
+
+	//Render to screen
+	SDL_RenderCopyEx( gRenderer, mTexture, clip, &renderQuad, angle, center, flip );
+}
+
+int LTexture::getWidth()
+{
+	return mWidth;
+}
+
+int LTexture::getHeight()
+{
+	return mHeight;
+}
+
+Dot::Dot()
+{
+    //Initialize the offsets
+    mPosX = 0;
+    mPosY = 0;
+
+	//Set collision box dimension
+	mCollider.w = DOT_WIDTH;
+	mCollider.h = DOT_HEIGHT;
+
+    //Initialize the velocity
+    mVelX = 0;
+    mVelY = 0;
+}
+
+void Dot::handleEvent( SDL_Event& e )
+{
+    //If a key was pressed
+	if( e.type == SDL_KEYDOWN && e.key.repeat == 0 )
+    {
+        //Adjust the velocity
+        switch( e.key.keysym.sym )
+        {
+            case SDLK_UP: mVelY -= DOT_VEL; break;
+            case SDLK_DOWN: mVelY += DOT_VEL; break;
+            case SDLK_LEFT: mVelX -= DOT_VEL; break;
+            case SDLK_RIGHT: mVelX += DOT_VEL; break;
+        }
+    }
+    //If a key was released
+    else if( e.type == SDL_KEYUP && e.key.repeat == 0 )
+    {
+        //Adjust the velocity
+        switch( e.key.keysym.sym )
+        {
+            case SDLK_UP: mVelY += DOT_VEL; break;
+            case SDLK_DOWN: mVelY -= DOT_VEL; break;
+            case SDLK_LEFT: mVelX += DOT_VEL; break;
+            case SDLK_RIGHT: mVelX -= DOT_VEL; break;
+        }
+    }
+}
+
+void Dot::move( SDL_Rect& wall )
+{
+    //Move the dot left or right
+    mPosX += mVelX;
+	mCollider.x = mPosX;
+
+    //If the dot collided or went too far to the left or right
+    if( ( mPosX < 0 ) || ( mPosX + DOT_WIDTH > SCREEN_WIDTH ) || checkCollision( mCollider, wall ) )
+    {
+        //Move back
+        mPosX -= mVelX;
+		mCollider.x = mPosX;
+    }
+
+    //Move the dot up or down
+    mPosY += mVelY;
+	mCollider.y = mPosY;
+
+    //If the dot collided or went too far up or down
+    if( ( mPosY < 0 ) || ( mPosY + DOT_HEIGHT > SCREEN_HEIGHT ) || checkCollision( mCollider, wall ) )
+    {
+        //Move back
+        mPosY -= mVelY;
+		mCollider.y = mPosY;
+    }
+}
+
+void Dot::render()
+{
+    //Show the dot
+	gDotTexture.render( mPosX, mPosY );
+}
+
+bool init()
+{
+	//Initialization flag
+	bool success = true;
+
+	//Initialize SDL
+	if( SDL_Init( SDL_INIT_VIDEO ) < 0 )
+	{
+		printf( "SDL could not initialize! SDL Error: %s\n", SDL_GetError() );
+		success = false;
+	}
+	else
+	{
+		//Set texture filtering to linear
+		if( !SDL_SetHint( SDL_HINT_RENDER_SCALE_QUALITY, "1" ) )
+		{
+			printf( "Warning: Linear texture filtering not enabled!" );
+		}
+
+		//Create window
+		gWindow = SDL_CreateWindow( "SDL Tutorial", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN );
+		if( gWindow == NULL )
+		{
+			printf( "Window could not be created! SDL Error: %s\n", SDL_GetError() );
+			success = false;
+		}
+		else
+		{
+			//Create vsynced renderer for window
+			gRenderer = SDL_CreateRenderer( gWindow, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC );
+			if( gRenderer == NULL )
+			{
+				printf( "Renderer could not be created! SDL Error: %s\n", SDL_GetError() );
+				success = false;
+			}
+			else
+			{
+				//Initialize renderer color
+				SDL_SetRenderDrawColor( gRenderer, 0xFF, 0xFF, 0xFF, 0xFF );
+
+				//Initialize PNG loading
+				int imgFlags = IMG_INIT_PNG;
+				if( !( IMG_Init( imgFlags ) & imgFlags ) )
+				{
+					printf( "SDL_image could not initialize! SDL_image Error: %s\n", IMG_GetError() );
+					success = false;
+				}
+			}
+		}
+	}
+
+	return success;
+}
+
+bool loadMedia()
+{
+	//Loading success flag
+	bool success = true;
+
+	//Load press texture
+	if( !gDotTexture.loadFromFile( "dot.bmp" ) )
+	{
+		printf( "Failed to load dot texture!\n" );
+		success = false;
+	}
+
+	return success;
+}
+
+void close()
+{
+	//Free loaded images
+	gDotTexture.free();
+
+	//Destroy window	
+	SDL_DestroyRenderer( gRenderer );
+	SDL_DestroyWindow( gWindow );
+	gWindow = NULL;
+	gRenderer = NULL;
+
+	//Quit SDL subsystems
+	IMG_Quit();
+	SDL_Quit();
+}
+
+bool checkCollision( SDL_Rect a, SDL_Rect b )
+{
+    //The sides of the rectangles
+    int leftA, leftB;
+    int rightA, rightB;
+    int topA, topB;
+    int bottomA, bottomB;
+
+    //Calculate the sides of rect A
+    leftA = a.x;
+    rightA = a.x + a.w;
+    topA = a.y;
+    bottomA = a.y + a.h;
+
+    //Calculate the sides of rect B
+    leftB = b.x;
+    rightB = b.x + b.w;
+    topB = b.y;
+    bottomB = b.y + b.h;
+
+    //If any of the sides from A are outside of B
+    if( bottomA <= topB )
+    {
+        return false;
+    }
+
+    if( topA >= bottomB )
+    {
+        return false;
+    }
+
+    if( rightA <= leftB )
+    {
+        return false;
+    }
+
+    if( leftA >= rightB )
+    {
+        return false;
+    }
+
+    //If none of the sides from A are outside B
+    return true;
+}
+
+int main( int argc, char* args[] )
+{
+	/*
+	SDL_Rect background_RECT;
+
+	background_RECT.x = 0;
+	background_RECT.y = 0;
+	background_RECT.w = 800;
+	background_RECT.h = 600;
+	
+	
+	
+	SDL_Renderer *ren = SDL_CreateRenderer(gWindow, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
 	if (ren == NULL)
 	{
 		std::cout << "SDL_CreateRenderer Error: " << SDL_GetError() << std::endl;
 		return 1;
 	}
-
-	SDL_Rect player_RECT;
-	player_RECT.x = 0;   //Смещение полотна по Х
-	player_RECT.y = 0;   //Смещение полотна по Y
-	player_RECT.w = 333; //Ширина полотна
-	player_RECT.h = 227; //Высота полотна
-
-	SDL_Rect background_RECT;
-
-	background_RECT.x = 0;
-	background_RECT.y = 0;
-	background_RECT.w = displayMode.w;
-	background_RECT.h = displayMode.h;
-
-	SDL_Surface *BMP_background = SDL_LoadBMP("res/hello.bmp");
+	
+	SDL_Surface *BMP_background = SDL_LoadBMP("res/sample.bmp");
 	if (BMP_background == NULL)
 	{
 		std::cout << "SDL_LoadBMP Error: " << SDL_GetError() << std::endl;
 		return 1;
 	}
-
+	
 	SDL_Texture *background = SDL_CreateTextureFromSurface(ren, BMP_background);
 	SDL_FreeSurface(BMP_background); //Очищение памяти поверхности
 	
-	SDL_Texture *player =  IMG_LoadTexture(ren, "res/kosmos-81.jpg");
-	if (player == NULL)
-	{
-		std::cout << "SDL_CreateTextureFromSurface Error: " << SDL_GetError() << std::endl;
-		return 1;
-
-	}
-				SDL_Event event;
-				bool quit = false;
-				while(!quit)
-					while(SDL_PollEvent(&event))
-					{
-						SDL_PumpEvents(); // обработчик событий.
-					}
-
-
 	SDL_RenderClear(ren); //Очистка рендера
 	SDL_RenderCopy(ren, background, NULL, &background_RECT); //Копируем в рендер фон
-	SDL_RenderCopy(ren, player, NULL, &player_RECT); //Копируем в рендер персонажа
 	SDL_RenderPresent(ren); //Погнали!!
-
-	if((keyboardState[SDL_SCANCODE_UP])||(keyboardState[SDL_SCANCODE_W]))
-		move_UP(ren,player,player_RECT);
-
-	if((keyboardState[SDL_SCANCODE_DOWN])||(keyboardState[SDL_SCANCODE_S]))
-		move_DOWN(ren,player,player_RECT);
-
-	if((keyboardState[SDL_SCANCODE_LEFT])||(keyboardState[SDL_SCANCODE_A]))
-		move_LEFT(ren,player,player_RECT);
-
-	if((keyboardState[SDL_SCANCODE_RIGHT])||(keyboardState[SDL_SCANCODE_D]))
-		move_RIGHT(ren,player,player_RECT);
-
-
-//ZOOM----------------------------------------------------------------
-	if(keyboardState[SDL_SCANCODE_KP_PLUS])
+	*/
+	//Start up SDL and create window
+	if( !init() )
 	{
-		TESTtexture_SCALE += 0.02;
-		player_RECT.h = player_HEIGH * TESTtexture_SCALE;
-		player_RECT.w = player_WIGHT * TESTtexture_SCALE;
+		printf( "Failed to initialize!\n" );
 	}
-	if(keyboardState[SDL_SCANCODE_KP_MINUS])
+	else
 	{
-		TESTtexture_SCALE -= 0.02;
-		player_RECT.h = player_HEIGH * TESTtexture_SCALE;
-		player_RECT.w = player_WIGHT * TESTtexture_SCALE;
+		//Load media
+		if( !loadMedia() )
+		{
+			printf( "Failed to load media!\n" );
+		}
+		else
+		{	
+			//Main loop flag
+			bool quit = false;
+
+			//Event handler
+			SDL_Event e;
+
+			//The dot that will be moving around on the screen
+			Dot dot;
+
+			//Set the wall
+			SDL_Rect wall;
+			{
+			wall.x = 200;
+			wall.y = 40;
+			wall.w = 40;
+			wall.h = 400;
+			}
+			
+			//While application is running
+			while( !quit )
+			{
+				//Handle events on queue
+				while( SDL_PollEvent( &e ) != 0 )
+				{
+					//User requests quit
+					if( e.type == SDL_QUIT )
+					{
+						quit = true;
+					}
+
+					//Handle input for the dot
+					dot.handleEvent( e );
+				}
+
+				//Move the dot and check collision
+				dot.move( wall );
+
+				//Clear screen
+				SDL_SetRenderDrawColor( gRenderer, 0xFF, 0xFF, 0xFF, 0xFF );
+				SDL_RenderClear( gRenderer );
+
+				//Render wall
+				SDL_SetRenderDrawColor( gRenderer, 0x00, 0x00, 0x00, 0xFF );		
+				SDL_RenderDrawRect( gRenderer, &wall );
+				
+				//Render dot
+				dot.render();
+
+				//Update screen
+				SDL_RenderPresent( gRenderer );
+			}
+		}
 	}
 
-	SDL_RenderPresent(ren);	
-	SDL_Delay(20000);
-	SDL_DestroyTexture(player);
-	SDL_DestroyTexture(background);
+	//Free resources and close SDL
+	close();
 
-	SDL_DestroyRenderer(ren);
-	SDL_DestroyWindow(win);
-	SDL_Quit();
 	return 0;
 }
-	
-// g++ client.cpp -O2 -Wall -I/usr/include/SDL2 -D_REENTRANT -L/usr/lib/x86_64-linux-gnu -lSDL2 -lSDL2_image -o client 

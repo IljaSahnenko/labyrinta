@@ -8,18 +8,18 @@ const int SCREEN_WIDTH = 640;
 const int SCREEN_HEIGHT = 640;
 
 //Button constants
-const int BUTTON_WIDTH = 340;
-const int BUTTON_HEIGHT = 71;
-const int TOTAL_BUTTONS = 3;
+const int BUTTON_WIDTH = 400;
+const int BUTTON_HEIGHT = 400;
+const int TOTAL_BUTTONS = 1;
 const int TOTAL_BUTTONS_1 = 2;
 const int TOTAL_BUTTONS_2 = 3;
 
 enum LButtonSprite
 {
 	BUTTON_SPRITE_MOUSE_OUT = 0,
-	BUTTON_SPRITE_MOUSE_OVER_MOTION = 1,
-	BUTTON_SPRITE_MOUSE_DOWN = 2,
-	BUTTON_SPRITE_MOUSE_UP = 3,
+	BUTTON_SPRITE_MOUSE_OVER_MOTION = 0,
+	BUTTON_SPRITE_MOUSE_DOWN = 0,
+	BUTTON_SPRITE_MOUSE_UP = 0,
 	BUTTON_SPRITE_TOTAL = 4
 };
 
@@ -161,7 +161,7 @@ bool LTexture::loadFromFile( std::string path )
 		SDL_SetColorKey( loadedSurface, SDL_TRUE, SDL_MapRGB( loadedSurface->format, 0, 0xFF, 0xFF ) );
 
 		//Create texture from surface pixels
-		newTexture = SDL_CreateTextureFromSurface( gRenderer, loadedSurface );
+        newTexture = SDL_CreateTextureFromSurface( gRenderer, loadedSurface );
 		if( newTexture == NULL )
 		{
 			printf( "Unable to create texture from %s! SDL Error: %s\n", path.c_str(), SDL_GetError() );
@@ -201,7 +201,7 @@ bool LTexture::loadFromFile1( std::string path )
 		SDL_SetColorKey( loadedSurface, SDL_TRUE, SDL_MapRGB( loadedSurface->format, 0, 0xFF, 0xFF ) );
 
 		//Create texture from surface pixels
-		newTexture = SDL_CreateTextureFromSurface( gRenderer, loadedSurface );
+        newTexture = SDL_CreateTextureFromSurface( gRenderer, loadedSurface );
 		if( newTexture == NULL )
 		{
 			printf( "Unable to create texture from %s! SDL Error: %s\n", path.c_str(), SDL_GetError() );
@@ -237,7 +237,7 @@ bool LTexture::loadFromRenderedText( std::string textureText, SDL_Color textColo
 	else
 	{
 		//Create texture from surface pixels
-		mTexture = SDL_CreateTextureFromSurface( gRenderer, textSurface );
+        mTexture = SDL_CreateTextureFromSurface( gRenderer, textSurface );
 		if( mTexture == NULL )
 		{
 			printf( "Unable to create texture from rendered text! SDL Error: %s\n", SDL_GetError() );
@@ -327,7 +327,16 @@ void LButton::setPosition( int x, int y )
 	mPosition.x = x;
 	mPosition.y = y;
 }
+void PrintEvent(const SDL_Event * event)
+                       {
+                           if (event->type == SDL_WINDOWEVENT)
+                           {
+                               switch (event->window.event)
+                               {
 
+                               }
+                           }
+                       }
 
 void LButton::handleEvent( SDL_Event* e )
 {
@@ -341,71 +350,17 @@ void LButton::handleEvent( SDL_Event* e )
 		//Check if mouse is in button
 		bool inside = true;
 
-		if (x >= 160 && x <= 160 + 340 && y >= 150 && y <= 150 + 71)
-		{
+		/*if (x >= 30 && x <= 30 + 150 && y >= 500 && y <= 500 + 150)
+        {
 
-			if (e->type == SDL_MOUSEBUTTONDOWN)  //this calls an event, I assume that you already know how to make an event right?
-				{
-				if (e->button.button == SDL_BUTTON_LEFT)
-					{
-					  system("./client");
+            if (e->type == SDL_MOUSEBUTTONDOWN)  //this calls an event, I assume that you already know how to make an event right?
+                {
+                if (e->button.button == SDL_BUTTON_LEFT)
+                    {
 
-					}
-				}
-		}
-
-
-
-
-		if (x >= 160 && x <= 160 + 340 && y >= 390 && y <= 390 + 71)
-		{
-
-			if (e->type == SDL_MOUSEBUTTONDOWN)  //this calls an event, I assume that you already know how to make an event right?
-				{
-				if (e->button.button == SDL_BUTTON_LEFT)
-					{
-					  SDL_Quit();
-					}
-				}
-		}
-
-		if (x >= 160 && x <= 160 + 340 && y >= 270 && y <= 270 + 71)
-		{
-
-			if (e->type == SDL_MOUSEBUTTONDOWN)  //this calls an event, I assume that you already know how to make an event right?
-				{
-					if (e->button.button == SDL_BUTTON_LEFT)
-						{
-							system("./mmm");
-							 /*bool success = true;  //if it is pressed then play1 becomes true which you could use to initiate the newgame
-							 hWindow = SDL_CreateWindow( "SDL_MENU", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 640, 180, SDL_WINDOW_SHOWN);
-							 if( hWindow == NULL )
-								{
-									printf( "Window could not be created! SDL Error: %s\n", SDL_GetError() );
-									success = false;
-								}
-							 else
-								{
-									if (x >= 160 && x <= 160 + 340 && y >= 150 && y <= 150 + 71)
-										{
-
-											if (e->type == SDL_MOUSEBUTTONDOWN)  //this calls an event, I assume that you already know how to make an event right?
-												{
-													if (e->button.button == SDL_BUTTON_LEFT)
-														{    //if it is pressed then play1 becomes true which you could use to initiate the newgame
-															SDL_Delay(200);
-														}
-												}
-										}
-								}*/
-
-
-						}
-				}
-		}
-
-
-
+                    }
+                }
+        }*/
 
 		//Mouse is left of the button
 		if( x < mPosition.x )
@@ -540,19 +495,14 @@ bool loadMedia()
 			gSpriteClips[ i ].w = BUTTON_WIDTH;
 			gSpriteClips[ i ].h = BUTTON_HEIGHT;
 		}
-		//if (gButtons[ 1 ]) gButtonSpriteSheetTexture1.loadFromFile( "res/menu/button.xcf" );
-		//if (gButtons[ 2 ]) gButtonSpriteSheetTexture1.loadFromFile( "res/menu/button.xcf" );
 
 		//Set buttons in corners
-		gButtons[ 0 ].setPosition( 160, 150 );
-		gButtons[ 1 ].setPosition( 160, 270 );
-		gButtons[ 2 ].setPosition( 160, 390 );
-		gButtons[ 3 ].setPosition( 0, 0 );
+		gButtons[ 0 ].setPosition( 127, 150 );
 
 	}
 	}
 	if( !gBackgroundTexture.loadFromFile( "res/menu/new_background.png" ) )
-		{
+	    {
 		  printf( "Failed to load background texture image!\n" );
 		  success = false;
 		}
@@ -580,7 +530,7 @@ void close()
 int main( int argc, char* args[] )
 {
 
-	bool inside = true;
+    bool inside = true;
 	//Start up SDL and create window
 	if( !init() )
 	{
@@ -630,60 +580,12 @@ int main( int argc, char* args[] )
 				//Render Foo' to the screen
 				gFooTexture.render( 0, 0 );
 
-				//Render buttons
-				gButtonSpriteSheetTexture.loadFromFile( "res/menu/555.png" );
+				gButtonSpriteSheetTexture.loadFromFile( "res/menu/control.png" );
 				for( int i = 0; i < TOTAL_BUTTONS; ++i )
 				{
 					gButtons[ 0 ].render();
-					/*switch(e.type)
-						{
-							case SDL_MOUSEBUTTONDOWN:
-								 SDL_Quit();
-							break;
-						}*/
-				}
-				gButtonSpriteSheetTexture.loadFromFile( "res/menu/options.png" );
-				for( int i = 0; i < TOTAL_BUTTONS; ++i )
-				{
-					gButtons[ 1 ].render();
-				}
-				gButtonSpriteSheetTexture.loadFromFile( "res/menu/exit.png" );
-				for( int i = 0; i < TOTAL_BUTTONS; ++i )
-				{
-					gButtons[ 2 ].render();
-					/*if (event->type == SDL_MOUSEBUTTONDOWN)
-					  {
-						if (event->button.button == SDL_BUTTON_LEFT)
-							{    //if it is pressed then play1 becomes true which you could use to initiate the newgame
-									play1 = true;
-							}
-					  }
-
-
-					{
-						LButton().mCurrentSprite = BUTTON_SPRITE_MOUSE_OUT;
-					}
-					else
-					{
-						switch(e.type)
-						{
-							case SDL_MOUSEBUTTONUP:
-								 SDL_Quit();
-							break;
-						}
-					}*/
-					break;
-
-				}
-				gButtonSpriteSheetTexture.loadFromFile( "res/menu/options.png" );
-				for( int i = 0; i < TOTAL_BUTTONS; ++i )
-				{
-					gButtons[ 3 ].render();
 				}
 
-
-
-				//Update screen
 				SDL_RenderPresent( gRenderer );
 			}
 

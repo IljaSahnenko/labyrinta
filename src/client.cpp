@@ -84,7 +84,7 @@ class LTexture
 //The tile
 class Tile
 {
-    public:
+	public:
 		//Initializes position and type
 		Tile( int x, int y, int tileType );
 
@@ -97,7 +97,7 @@ class Tile
 		//Get the collision box
 		SDL_Rect getBox();
 
-    private:
+	private:
 		//The attributes of the tile
 		SDL_Rect mBox;
 
@@ -108,7 +108,7 @@ class Tile
 //The dot that will move around on the screen
 class Dot
 {
-    public:
+	public:
 		//The dimensions of the dot
 		static const int DOT_WIDTH = 30;
 		static const int DOT_HEIGHT = 30;
@@ -131,7 +131,7 @@ class Dot
 		//Shows the dot on the screen
 		void render( SDL_Rect& camera );
 
-    private:
+	private:
 		//Collision box of the dot
 		SDL_Rect mBox;
 
@@ -140,7 +140,7 @@ class Dot
 };
 class Bax
 {
-    public:
+	public:
 		//The dimensions of the dot
 		static const int BAX_WIDTH = 50;
 		static const int BAX_HEIGHT = 50;
@@ -161,7 +161,7 @@ class Bax
 		mVexX = mVexX_1;
 		mVexY = mVexY_1;}
 
-    private:
+	private:
 		//Collision box of the dot
 		SDL_Rect mBax;
 
@@ -171,15 +171,15 @@ class Bax
 };
 Bax::Bax()
 {
-    //Initialize the collision box
-    mBax.x = 30;
-    mBax.y = 30;
+	//Initialize the collision box
+	mBax.x = 30;
+	mBax.y = 30;
 	mBax.w = BAX_WIDTH;
 	mBax.h = BAX_HEIGHT;
 
-    //Initialize the velocity
-    mVexX = 0;
-    mVexY = 0;
+	//Initialize the velocity
+	mVexX = 0;
+	mVexY = 0;
 }
 
 //Starts up SDL and creates window
@@ -245,7 +245,7 @@ bool LTexture::loadFromFile( std::string path )
 		SDL_SetColorKey( loadedSurface, SDL_TRUE, SDL_MapRGB( loadedSurface->format, 0, 0xFF, 0xFF ) );
 
 		//Create texture from surface pixels
-        newTexture = SDL_CreateTextureFromSurface( gRenderer, loadedSurface );
+		newTexture = SDL_CreateTextureFromSurface( gRenderer, loadedSurface );
 		if( newTexture == NULL )
 		{
 			printf( "Unable to create texture from %s! SDL Error: %s\n", path.c_str(), SDL_GetError() );
@@ -277,7 +277,7 @@ bool LTexture::loadFromRenderedText( std::string textureText, SDL_Color textColo
 	if( textSurface != NULL )
 	{
 		//Create texture from surface pixels
-        mTexture = SDL_CreateTextureFromSurface( gRenderer, textSurface );
+		mTexture = SDL_CreateTextureFromSurface( gRenderer, textSurface );
 		if( mTexture == NULL )
 		{
 			printf( "Unable to create texture from rendered text! SDL Error: %s\n", SDL_GetError() );
@@ -361,104 +361,104 @@ int LTexture::getHeight()
 
 Tile::Tile( int x, int y, int tileType )
 {
-    //Get the offsets
-    mBox.x = x;
-    mBox.y = y;
+	//Get the offsets
+	mBox.x = x;
+	mBox.y = y;
 
-    //Set the collision box
-    mBox.w = TILE_WIDTH;
-    mBox.h = TILE_HEIGHT;
+	//Set the collision box
+	mBox.w = TILE_WIDTH;
+	mBox.h = TILE_HEIGHT;
 
-    //Get the tile type
-    mType = tileType;
+	//Get the tile type
+	mType = tileType;
 }
 
 void Tile::render( SDL_Rect& camera )
 {
-    //If the tile is on screen
-    if( checkCollision( camera, mBox ) )
-    {
-        //Show the tile
-        gTileTexture.render( mBox.x - camera.x, mBox.y - camera.y, &gTileClips[ mType ] );
-    }
+	//If the tile is on screen
+	if( checkCollision( camera, mBox ) )
+	{
+		//Show the tile
+		gTileTexture.render( mBox.x - camera.x, mBox.y - camera.y, &gTileClips[ mType ] );
+	}
 }
 
 int Tile::getType()
 {
-    return mType;
+	return mType;
 }
 
 SDL_Rect Tile::getBox()
 {
-    return mBox;
+	return mBox;
 }
 
 Dot::Dot()
 {
-    //Initialize the collision box
-    mBox.x = 60;
-    mBox.y = 60;
+	//Initialize the collision box
+	mBox.x = 60;
+	mBox.y = 60;
 	mBox.w = DOT_WIDTH;
 	mBox.h = DOT_HEIGHT;
 
-    //Initialize the velocity
-    mVelX = 0;
-    mVelY = 0;
+	//Initialize the velocity
+	mVelX = 0;
+	mVelY = 0;
 }
 
 void Dot::handleEvent( SDL_Event& e )
 {
-    //If a key was pressed
+	//If a key was pressed
 	if( e.type == SDL_KEYDOWN && e.key.repeat == 0 )
-    {
-        //Adjust the velocity
-        switch( e.key.keysym.sym )
-        {
-            case SDLK_UP: mVelY -= DOT_VEL;    gDotTexture.loadFromFile( "res/player/up_user.png" ); break;
-            case SDLK_DOWN: mVelY += DOT_VEL;  gDotTexture.loadFromFile( "res/player/down_user.png" ); break;
-            case SDLK_LEFT: mVelX -= DOT_VEL;  gDotTexture.loadFromFile( "res/player/left_user.png" ); break;
-            case SDLK_RIGHT: mVelX += DOT_VEL; gDotTexture.loadFromFile( "res/player/right_user.png" ); break;
-        }
-    }
-    //If a key was released
-    else if( e.type == SDL_KEYUP && e.key.repeat == 0 )
-    {
-        //Adjust the velocity
-        switch( e.key.keysym.sym )
-        {
-            case SDLK_UP: mVelY += DOT_VEL;
-            break;
-            case SDLK_DOWN: mVelY -= DOT_VEL;
-            break;
-            case SDLK_LEFT: mVelX += DOT_VEL;
-            break;
-            case SDLK_RIGHT: mVelX -= DOT_VEL;
-            break;
-        }
-    }
+	{
+		//Adjust the velocity
+		switch( e.key.keysym.sym )
+		{
+			case SDLK_UP: mVelY -= DOT_VEL;    gDotTexture.loadFromFile( "res/player/up_user.png" ); break;
+			case SDLK_DOWN: mVelY += DOT_VEL;  gDotTexture.loadFromFile( "res/player/down_user.png" ); break;
+			case SDLK_LEFT: mVelX -= DOT_VEL;  gDotTexture.loadFromFile( "res/player/left_user.png" ); break;
+			case SDLK_RIGHT: mVelX += DOT_VEL; gDotTexture.loadFromFile( "res/player/right_user.png" ); break;
+		}
+	}
+	//If a key was released
+	else if( e.type == SDL_KEYUP && e.key.repeat == 0 )
+	{
+		//Adjust the velocity
+		switch( e.key.keysym.sym )
+		{
+			case SDLK_UP: mVelY += DOT_VEL;
+			break;
+			case SDLK_DOWN: mVelY -= DOT_VEL;
+			break;
+			case SDLK_LEFT: mVelX += DOT_VEL;
+			break;
+			case SDLK_RIGHT: mVelX -= DOT_VEL;
+			break;
+		}
+	}
 }
 
 void Dot::move( Tile *tiles[] )
 {
-    //Move the dot left or right
-    mBox.x += mVelX;
+	//Move the dot left or right
+	mBox.x += mVelX;
 
-    //If the dot went too far to the left or right or touched a wall
-    if( ( mBox.x < 0 ) || ( mBox.x + DOT_WIDTH > LEVEL_WIDTH ) || touchesWall( mBox, tiles ) )
-    {
-        //move back
-        mBox.x -= mVelX;
-    }
+	//If the dot went too far to the left or right or touched a wall
+	if( ( mBox.x < 0 ) || ( mBox.x + DOT_WIDTH > LEVEL_WIDTH ) || touchesWall( mBox, tiles ) )
+	{
+		//move back
+		mBox.x -= mVelX;
+	}
 
-    //Move the dot up or down
-    mBox.y += mVelY;
+	//Move the dot up or down
+	mBox.y += mVelY;
 
-    //If the dot went too far up or down or touched a wall
-    if( ( mBox.y < 0 ) || ( mBox.y + DOT_HEIGHT > LEVEL_HEIGHT ) || touchesWall( mBox, tiles ) )
-    {
-        //move back
-        mBox.y -= mVelY;
-    }
+	//If the dot went too far up or down or touched a wall
+	if( ( mBox.y < 0 ) || ( mBox.y + DOT_HEIGHT > LEVEL_HEIGHT ) || touchesWall( mBox, tiles ) )
+	{
+		//move back
+		mBox.y -= mVelY;
+	}
 }
 
 void Dot::setCamera( SDL_Rect& camera )
@@ -488,7 +488,7 @@ void Dot::setCamera( SDL_Rect& camera )
 
 void Dot::render( SDL_Rect& camera )
 {
-    //Show the dot
+	//Show the dot
 	gDotTexture.render( mBox.x - camera.x, mBox.y - camera.y );
 }
 
@@ -604,47 +604,47 @@ void close( Tile* tiles[] )
 
 bool checkCollision( SDL_Rect a, SDL_Rect b )
 {
-    //The sides of the rectangles
-    int leftA, leftB;
-    int rightA, rightB;
-    int topA, topB;
-    int bottomA, bottomB;
+	//The sides of the rectangles
+	int leftA, leftB;
+	int rightA, rightB;
+	int topA, topB;
+	int bottomA, bottomB;
 
-    //Calculate the sides of rect A
-    leftA = a.x;
-    rightA = a.x + a.w;
-    topA = a.y;
-    bottomA = a.y + a.h;
+	//Calculate the sides of rect A
+	leftA = a.x;
+	rightA = a.x + a.w;
+	topA = a.y;
+	bottomA = a.y + a.h;
 
-    //Calculate the sides of rect B
-    leftB = b.x;
-    rightB = b.x + b.w;
-    topB = b.y;
-    bottomB = b.y + b.h;
+	//Calculate the sides of rect B
+	leftB = b.x;
+	rightB = b.x + b.w;
+	topB = b.y;
+	bottomB = b.y + b.h;
 
-    //If any of the sides from A are outside of B
-    if( bottomA <= topB )
-    {
-        return false;
-    }
+	//If any of the sides from A are outside of B
+	if( bottomA <= topB )
+	{
+		return false;
+	}
 
-    if( topA >= bottomB )
-    {
-        return false;
-    }
+	if( topA >= bottomB )
+	{
+		return false;
+	}
 
-    if( rightA <= leftB )
-    {
-        return false;
-    }
+	if( rightA <= leftB )
+	{
+		return false;
+	}
 
-    if( leftA >= rightB )
-    {
-        return false;
-    }
+	if( leftA >= rightB )
+	{
+		return false;
+	}
 
-    //If none of the sides from A are outside B
-    return true;
+	//If none of the sides from A are outside B
+	return true;
 }
 
 bool setTiles( Tile* tiles[] )
@@ -652,18 +652,18 @@ bool setTiles( Tile* tiles[] )
 	//Success flag
 	bool tilesLoaded = true;
 
-    //The tile offsets
-    int x = 0, y = 0;
+	//The tile offsets
+	int x = 0, y = 0;
 
-    //Open the map
-    std::ifstream map( "res/lazy.map" );
+	//Open the map
+	std::ifstream map( "res/lazy.map" );
 
-    //If the map couldn't be loaded
-    if( map == NULL )
-    {
+	//If the map couldn't be loaded
+	if( map == NULL )
+	{
 		printf( "Unable to load map file!\n" );
 		tilesLoaded = false;
-    }
+	}
 	else
 	{
 		//Initialize the tiles
@@ -777,31 +777,31 @@ bool setTiles( Tile* tiles[] )
 		}
 	}
 
-    //Close the file
-    map.close();
+	//Close the file
+	map.close();
 
-    //If the map was loaded fine
-    return tilesLoaded;
+	//If the map was loaded fine
+	return tilesLoaded;
 }
 
 bool touchesWall( SDL_Rect box, Tile* tiles[] )
 {
-    //Go through the tiles
-    for( int i = 0; i < TOTAL_TILES; ++i )
-    {
-        //If the tile is a wall type tile
-        if( ( tiles[ i ]->getType() >= TILE_CENTER ) && ( tiles[ i ]->getType() <= TILE_TOPLEFT ) )
-        {
-            //If the collision box touches the wall tile
-            if( checkCollision( box, tiles[ i ]->getBox() ) )
-            {
-                return true;
-            }
-        }
-    }
+	//Go through the tiles
+	for( int i = 0; i < TOTAL_TILES; ++i )
+	{
+		//If the tile is a wall type tile
+		if( ( tiles[ i ]->getType() >= TILE_CENTER ) && ( tiles[ i ]->getType() <= TILE_TOPLEFT ) )
+		{
+			//If the collision box touches the wall tile
+			if( checkCollision( box, tiles[ i ]->getBox() ) )
+			{
+				return true;
+			}
+		}
+	}
 
-    //If no wall tiles were touched
-    return false;
+	//If no wall tiles were touched
+	return false;
 }
 
 int main( int argc, char* args[] )

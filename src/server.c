@@ -47,7 +47,7 @@ main ( int argc, char ** argv )
 
 	/* Binding */
 	printf("Binding...\t");
-//	bzero((char *) &serv_addr, sizeof(serv_addr));
+	bzero((char *) &serv_addr, sizeof(serv_addr));
 	if ( argc == 2 ) portn = atoi(argv[1]);
 	/* host byte order */
 	serv_addr.sin_family = AF_INET;
@@ -57,44 +57,59 @@ main ( int argc, char ** argv )
 	serv_addr.sin_port = htons(portn);
 	/* zero the rest of the struct */
 	memset(&(serv_addr.sin_zero), 0, 8);
-	if ( bind(socket_fd, (struct sockaddr *)&serv_addr, sizeof(struct sockaddr)) == -1 )
+	if ( bind( socket_fd, (struct sockaddr *)&serv_addr, sizeof(struct sockaddr) ) == -1 )
+	{
 		err_send("ERROR\n");
+		++portn;
+	}
 	else
 		printf("OK\n");
 
 
-	/* Listener */
-	printf("Listening...\t");
-	if (listen( socket_fd, NUM_OF_CONNECTIONS ) == -1 )
-		err_send("ERROR\n");
-	else
-		printf("OK, on port %d\n", portn);
-
-
 	/* Accepting incoming, new connection on new_socket_fd */
 	cli_len = sizeof(cli_addr);
-	int new_socket_fd;
+	/*	int new_socket_fd; */
 
-	for ( ;; sleep(1) )
+	for ( ;; )
 	{
-		new_socket_fd = accept( socket_fd, (struct sockaddr *) &cli_addr, &cli_len );
+		/* Listener */
+		printf("Listening...\t");
+		if (listen( socket_fd, NUM_OF_CONNECTIONS ) == -1 )
+			err_send("ERROR\n");
+		else
+			printf("OK, on port %d\n", portn);
+
+
+		/* Accepting incoming connection */
+		int new_socket_fd = accept( socket_fd, (struct sockaddr *) &cli_addr, &cli_len );
 		if ( new_socket_fd < 0 )
 			err_send("\nACCEPT ERROR\n");
 		else
 			printf("New client!\n");
 
-		for ( ;; sleep(1) )
+		for ( ;; )
 		{
 			bzero(bufx, BUFFER_SIZE);
+
+			/* Reading incoming message */
 			mesg = read( new_socket_fd, bufx, BUFFER_SIZE - 1 );
 			if ( mesg < 0 )
+
 				err_send("Error in receiving!\n");
 			printf("Accepted message: %s", bufx);
-			if ( !strcmp(bufx, "exit") )
+
+			if ( bufx[0] == '1' )
 			{
-				printf("Initiated disconnect...\n");
-				break;
+				printf("\nSPECIAL ACTION GOES HERE\n");
 			}
+
+			char * tmp[BUFFER_SIZE];
+			strcpy( tmp, bufx );
+
+			sprintf( bufx, "Accepted %s", &tmp );
+
+			mesg = write( new_socket_fd, bufx, strlen(bufx) + 1 );
+
 		}
 		close(new_socket_fd);
 		printf("Client is disconnected.\n");

@@ -21,9 +21,9 @@ err_send(const char * input)
 int
 main ( int argc, char ** argv )
 {
-	/* listen on socket_fd, new connection on new_socket_fd */
+	/* listen on socket_fd */
 	int socket_fd;
-	int new_socket_fd;
+
 	int portn = DEFAULT_PORT_NUM;
 	socklen_t cli_len;
 
@@ -71,8 +71,9 @@ main ( int argc, char ** argv )
 		printf("OK, on port %d\n", portn);
 
 
-	/* Accepting incoming */
+	/* Accepting incoming, new connection on new_socket_fd */
 	cli_len = sizeof(cli_addr);
+	int new_socket_fd;
 
 	for ( ;; sleep(1) )
 	{

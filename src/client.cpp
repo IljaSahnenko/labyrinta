@@ -4,9 +4,7 @@
 #include <string>
 #include <fstream>
 
-//Screen dimension constants
-const int SCREEN_WIDTH = 640;
-const int SCREEN_HEIGHT = 480;
+#include "constants.hpp"
 
 //The dimensions of the level
 const int LEVEL_WIDTH = 1320;    //2560/32   /22

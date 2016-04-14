@@ -9,7 +9,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#include "config.h"
+#include "../config.h"
 
 void
 err_send(const char * input)

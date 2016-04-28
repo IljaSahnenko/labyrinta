@@ -25,6 +25,13 @@ int main(int argc, char *argv[])
 	char buffer[BUFFER_SIZE];
 
 	portno = DEFAULT_PORT_NUM;
+
+	if (argc > 2) portno = atoi(argv[2]);
+
+
+
+
+
 	sockfd = socket(AF_INET, SOCK_STREAM, 0);
 	if (sockfd < 0)
 		error("ERROR opening socket");

@@ -1,23 +1,27 @@
 CC = cc
 CPP = g++
-FLAGS = -O2 -Wall --std=c99
-CFLAGS = -O2 -Wall
-SV_NAME = server
-CL_NAME = client
+CFLAGS = -O2 -Wall --std=c11
+CPPFLAGS = -O2 -Wall
+SRCPATH=./src
 SDL_CFLAGS := $(shell sdl2-config --cflags)
 SDL_LDFLAGS := $(shell sdl2-config --libs) -lSDL2_image
 
-# all:
+all: client server example menu mmm
 
 client:
-#	$(CPP) $(CFLAGS) -o $@ $?
-#	$(CPP) $(CFLAGS) $(SDL_CFLAGS) $(SDL_LDFLAGS) -o $@ $?
-	$(CPP) $(CL_NAME).cpp $(CFLAGS) $(SDL_CFLAGS) $(SDL_LDFLAGS) -o $@ $?
+	$(CPP) $(SRCPATH)/client.cpp $(CPPFLAGS) $(SDL_CFLAGS) $(SDL_LDFLAGS) -o $@ $?
 
+menu:
+	$(CPP) $(SRCPATH)/menu.cpp $(CPPFLAGS) $(SDL_CFLAGS) $(SDL_LDFLAGS) -o $@ $?
 
-server: $(SV_NAME).c
-	$(CC) $(FLAGS) -o $@ $?
+mmm:
+	$(CPP) $(SRCPATH)/menu.cpp $(CPPFLAGS) $(SDL_CFLAGS) $(SDL_LDFLAGS) -o $@ $?
 
+example:
+	$(CC) $(SRCPATH)/example_client.c $(CFLAGS) -o $@ $?
+
+server:
+	$(CC) $(SRCPATH)/server.c $(CFLAGS) -o $@ $?
 
 clean:
-	rm -f $(SV_NAME) $(CL_NAME)
+	rm -f server client example menu mmm

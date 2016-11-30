@@ -1,14 +1,25 @@
-
-//Using SDL, SDL_image, standard IO, and strings
-#include <SDL2/SDL.h>
-#include <SDL2/SDL_image.h>
+#include <SDL.h>
+#include <SDL_image.h>
 #include <stdio.h>
 #include <string>
-#include <iostream>
 
-//Screen dimension constants
-const int SCREEN_WIDTH = 640;
-const int SCREEN_HEIGHT = 480;
+#include "constants.hpp"
+
+//Button constants
+const int BUTTON_WIDTH = 400;
+const int BUTTON_HEIGHT = 400;
+const int TOTAL_BUTTONS = 1;
+const int TOTAL_BUTTONS_1 = 2;
+const int TOTAL_BUTTONS_2 = 3;
+
+enum LButtonSprite
+{
+	BUTTON_SPRITE_MOUSE_OUT = 0,
+	BUTTON_SPRITE_MOUSE_OVER_MOTION = 0,
+	BUTTON_SPRITE_MOUSE_DOWN = 0,
+	BUTTON_SPRITE_MOUSE_UP = 0,
+	BUTTON_SPRITE_TOTAL = 4
+};
 
 //Texture wrapper class
 class LTexture
@@ -22,7 +33,8 @@ class LTexture
 
 		//Loads image at specified path
 		bool loadFromFile( std::string path );
-		
+		bool loadFromFile1( std::string path );
+
 		#ifdef _SDL_TTF_H
 		//Creates image from font string
 		bool loadFromRenderedText( std::string textureText, SDL_Color textColor );
@@ -39,7 +51,7 @@ class LTexture
 
 		//Set alpha modulation
 		void setAlpha( Uint8 alpha );
-		
+
 		//Renders texture at given point
 		void render( int x, int y, SDL_Rect* clip = NULL, double angle = 0.0, SDL_Point* center = NULL, SDL_RendererFlip flip = SDL_FLIP_NONE );
 
@@ -56,38 +68,28 @@ class LTexture
 		int mHeight;
 };
 
-//The dot that will move around on the screen
-class Dot
+//The mouse button
+class LButton
 {
-    public:
-		//The dimensions of the dot
-		static const int DOT_WIDTH = 20;
-		static const int DOT_HEIGHT = 20;
+	public:
+		//Initializes internal variables
+		LButton();
 
-		//Maximum axis velocity of the dot
-		static const int DOT_VEL = 4;
+		//Sets top left position
+		void setPosition( int x, int y );
 
-		//Initializes the variables
-		Dot();
+		//Handles mouse event
+		void handleEvent( SDL_Event* e );
 
-		//Takes key presses and adjusts the dot's velocity
-		void handleEvent( SDL_Event& e );
-
-		//Moves the dot and checks collision
-		void move( SDL_Rect& wall );
-
-		//Shows the dot on the screen
+		//Shows button sprite
 		void render();
 
-    private:
-		//The X and Y offsets of the dot
-		int mPosX, mPosY;
+	//private:
+		//Top left position
+		SDL_Point mPosition;
 
-		//The velocity of the dot
-		int mVelX, mVelY;
-		
-		//Dot's collision box
-		SDL_Rect mCollider;
+		//Currently used global sprite
+		LButtonSprite mCurrentSprite;
 };
 
 //Starts up SDL and creates window
@@ -95,21 +97,33 @@ bool init();
 
 //Loads media
 bool loadMedia();
+bool loadMedia1();
 
 //Frees media and shuts down SDL
 void close();
 
-//Box collision detector
-bool checkCollision( SDL_Rect a, SDL_Rect b );
-
 //The window we'll be rendering to
 SDL_Window* gWindow = NULL;
+SDL_Window* hWindow = NULL;
 
 //The window renderer
 SDL_Renderer* gRenderer = NULL;
 
-//Scene textures
-LTexture gDotTexture;
+//Mouse button sprites
+SDL_Rect gSpriteClips[ BUTTON_SPRITE_TOTAL ];
+
+
+LTexture gButtonSpriteSheetTexture;
+LTexture gButtonSpriteSheetTexture1;
+LTexture gButtonSpriteSheetTexture2;
+LTexture gBackgroundTexture;
+LTexture gFooTexture;
+
+
+//Buttons objects
+LButton gButtons[ TOTAL_BUTTONS ];
+LButton gButtons_1[ TOTAL_BUTTONS ];
+LButton gButtons_2[ TOTAL_BUTTONS ];
 
 LTexture::LTexture()
 {
@@ -165,6 +179,46 @@ bool LTexture::loadFromFile( std::string path )
 	mTexture = newTexture;
 	return mTexture != NULL;
 }
+bool LTexture::loadFromFile1( std::string path )
+{
+	//Get rid of preexisting texture
+	free();
+
+	//The final texture
+	SDL_Texture* newTexture = NULL;
+
+	//Load image at specified path
+	SDL_Surface* loadedSurface = IMG_Load( path.c_str() );
+	if( loadedSurface == NULL )
+	{
+		printf( "Unable to load image %s! SDL_image Error: %s\n", path.c_str(), IMG_GetError() );
+	}
+	else
+	{
+		//Color key image
+		SDL_SetColorKey( loadedSurface, SDL_TRUE, SDL_MapRGB( loadedSurface->format, 0, 0xFF, 0xFF ) );
+
+		//Create texture from surface pixels
+        newTexture = SDL_CreateTextureFromSurface( gRenderer, loadedSurface );
+		if( newTexture == NULL )
+		{
+			printf( "Unable to create texture from %s! SDL Error: %s\n", path.c_str(), SDL_GetError() );
+		}
+		else
+		{
+			//Get image dimensions
+			mWidth = loadedSurface->w;
+			mHeight = loadedSurface->h;
+		}
+
+		//Get rid of old loaded surface
+		SDL_FreeSurface( loadedSurface );
+	}
+
+	//Return success
+	mTexture = newTexture;
+	return mTexture != NULL;
+}
 
 #ifdef _SDL_TTF_H
 bool LTexture::loadFromRenderedText( std::string textureText, SDL_Color textColor )
@@ -174,7 +228,11 @@ bool LTexture::loadFromRenderedText( std::string textureText, SDL_Color textColo
 
 	//Render text surface
 	SDL_Surface* textSurface = TTF_RenderText_Solid( gFont, textureText.c_str(), textColor );
-	if( textSurface != NULL )
+	if( textSurface == NULL )
+	{
+		printf( "Unable to render text surface! SDL_ttf Error: %s\n", TTF_GetError() );
+	}
+	else
 	{
 		//Create texture from surface pixels
         mTexture = SDL_CreateTextureFromSurface( gRenderer, textSurface );
@@ -192,12 +250,7 @@ bool LTexture::loadFromRenderedText( std::string textureText, SDL_Color textColo
 		//Get rid of old surface
 		SDL_FreeSurface( textSurface );
 	}
-	else
-	{
-		printf( "Unable to render text surface! SDL_ttf Error: %s\n", TTF_GetError() );
-	}
 
-	
 	//Return success
 	return mTexture != NULL;
 }
@@ -226,7 +279,7 @@ void LTexture::setBlendMode( SDL_BlendMode blending )
 	//Set blending function
 	SDL_SetTextureBlendMode( mTexture, blending );
 }
-		
+
 void LTexture::setAlpha( Uint8 alpha )
 {
 	//Modulate texture alpha
@@ -259,80 +312,109 @@ int LTexture::getHeight()
 	return mHeight;
 }
 
-Dot::Dot()
+LButton::LButton()
 {
-    //Initialize the offsets
-    mPosX = 0;
-    mPosY = 0;
+	mPosition.x = 0;
+	mPosition.y = 0;
 
-	//Set collision box dimension
-	mCollider.w = DOT_WIDTH;
-	mCollider.h = DOT_HEIGHT;
-
-    //Initialize the velocity
-    mVelX = 0;
-    mVelY = 0;
+	mCurrentSprite = BUTTON_SPRITE_MOUSE_OUT;
 }
 
-void Dot::handleEvent( SDL_Event& e )
+void LButton::setPosition( int x, int y )
 {
-    //If a key was pressed
-	if( e.type == SDL_KEYDOWN && e.key.repeat == 0 )
-    {
-        //Adjust the velocity
-        switch( e.key.keysym.sym )
+	mPosition.x = x;
+	mPosition.y = y;
+}
+void PrintEvent(const SDL_Event * event)
+                       {
+                           if (event->type == SDL_WINDOWEVENT)
+                           {
+                               switch (event->window.event)
+                               {
+
+                               }
+                           }
+                       }
+
+void LButton::handleEvent( SDL_Event* e )
+{
+	//If mouse event happened
+	if( e->type == SDL_MOUSEMOTION || e->type == SDL_MOUSEBUTTONDOWN || e->type == SDL_MOUSEBUTTONUP )
+	{
+		//Get mouse position
+		int x, y;
+		SDL_GetMouseState( &x, &y );
+
+		//Check if mouse is in button
+		bool inside = true;
+
+		/*if (x >= 30 && x <= 30 + 150 && y >= 500 && y <= 500 + 150)
         {
-            case SDLK_UP: mVelY -= DOT_VEL; break;
-            case SDLK_DOWN: mVelY += DOT_VEL; break;
-            case SDLK_LEFT: mVelX -= DOT_VEL; break;
-            case SDLK_RIGHT: mVelX += DOT_VEL; break;
-        }
-    }
-    //If a key was released
-    else if( e.type == SDL_KEYUP && e.key.repeat == 0 )
-    {
-        //Adjust the velocity
-        switch( e.key.keysym.sym )
-        {
-            case SDLK_UP: mVelY += DOT_VEL; break;
-            case SDLK_DOWN: mVelY -= DOT_VEL; break;
-            case SDLK_LEFT: mVelX += DOT_VEL; break;
-            case SDLK_RIGHT: mVelX -= DOT_VEL; break;
-        }
-    }
+
+            if (e->type == SDL_MOUSEBUTTONDOWN)  //this calls an event, I assume that you already know how to make an event right?
+                {
+                if (e->button.button == SDL_BUTTON_LEFT)
+                    {
+
+                    }
+                }
+        }*/
+
+		//Mouse is left of the button
+		if( x < mPosition.x )
+		{
+			inside = false;
+		}
+		//Mouse is right of the button
+		else if( x > mPosition.x + BUTTON_WIDTH )
+		{
+			inside = false;
+		}
+		//Mouse above the button
+		else if( y < mPosition.y )
+		{
+			inside = false;
+		}
+		//Mouse below the button
+		else if( y > mPosition.y + BUTTON_HEIGHT )
+		{
+			inside = false;
+		}
+
+		//Mouse is outside button
+		if( !inside )
+		{
+			mCurrentSprite = BUTTON_SPRITE_MOUSE_OUT;
+		}
+		//Mouse is inside button
+		else
+		{
+			//Set mouse over sprite
+			switch( e->type )
+			{
+				case SDL_MOUSEMOTION:
+				mCurrentSprite = BUTTON_SPRITE_MOUSE_OVER_MOTION;
+				break;
+
+				case SDL_MOUSEBUTTONDOWN:
+				mCurrentSprite = BUTTON_SPRITE_MOUSE_DOWN;
+				break;
+
+				case SDL_MOUSEBUTTONUP:
+				mCurrentSprite = BUTTON_SPRITE_MOUSE_UP;
+				break;
+
+			}
+		}
+	}
 }
 
-void Dot::move( SDL_Rect& wall )
+void LButton::render()
 {
-    //Move the dot left or right
-    mPosX += mVelX;
-	mCollider.x = mPosX;
-
-    //If the dot collided or went too far to the left or right
-    if( ( mPosX < 0 ) || ( mPosX + DOT_WIDTH > SCREEN_WIDTH ) || checkCollision( mCollider, wall ) )
-    {
-        //Move back
-        mPosX -= mVelX;
-		mCollider.x = mPosX;
-    }
-
-    //Move the dot up or down
-    mPosY += mVelY;
-	mCollider.y = mPosY;
-
-    //If the dot collided or went too far up or down
-    if( ( mPosY < 0 ) || ( mPosY + DOT_HEIGHT > SCREEN_HEIGHT ) || checkCollision( mCollider, wall ) )
-    {
-        //Move back
-        mPosY -= mVelY;
-		mCollider.y = mPosY;
-    }
-}
-
-void Dot::render()
-{
-    //Show the dot
-	gDotTexture.render( mPosX, mPosY );
+	//Show current button sprite
+	gButtonSpriteSheetTexture.render( mPosition.x, mPosition.y, &gSpriteClips[ mCurrentSprite ] );
+	gButtonSpriteSheetTexture1.render( mPosition.x, mPosition.y, &gSpriteClips[ mCurrentSprite ] );
+	gButtonSpriteSheetTexture2.render( mPosition.x, mPosition.y, &gSpriteClips[ mCurrentSprite ] );
 }
 
 bool init()
@@ -355,7 +437,7 @@ bool init()
 		}
 
 		//Create window
-		gWindow = SDL_CreateWindow( "SDL Tutorial", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN );
+		gWindow = SDL_CreateWindow( "SDL_MENU", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN );
 		if( gWindow == NULL )
 		{
 			printf( "Window could not be created! SDL Error: %s\n", SDL_GetError() );
@@ -394,22 +476,45 @@ bool loadMedia()
 	//Loading success flag
 	bool success = true;
 
-	//Load press texture
-	if( !gDotTexture.loadFromFile( "dot.bmp" ) )
+	//Load sprites
+	{if( !gButtonSpriteSheetTexture.loadFromFile( "res/menu/button.png" ) )
 	{
-		printf( "Failed to load dot texture!\n" );
+		printf( "Failed to load button sprite texture!\n" );
 		success = false;
 	}
 
-	return success;
+	else
+	{
+		//Set sprites
+		for( int i = 0; i < 4; ++i )
+		{
+			gSpriteClips[ i ].x = 0;
+			gSpriteClips[ i ].y = i * 200;
+			gSpriteClips[ i ].w = BUTTON_WIDTH;
+			gSpriteClips[ i ].h = BUTTON_HEIGHT;
+		}
+
+		//Set buttons in corners
+		gButtons[ 0 ].setPosition( 127, 150 );
+
+	}
+	}
+	if( !gBackgroundTexture.loadFromFile( "res/menu/new_background.png" ) )
+	    {
+		  printf( "Failed to load background texture image!\n" );
+		  success = false;
+		}
+		return success;
 }
+
 
 void close()
 {
 	//Free loaded images
-	gDotTexture.free();
+	gButtonSpriteSheetTexture.free();
+	gButtonSpriteSheetTexture1.free();
 
-	//Destroy window	
+	//Destroy window
 	SDL_DestroyRenderer( gRenderer );
 	SDL_DestroyWindow( gWindow );
 	gWindow = NULL;
@@ -420,84 +525,10 @@ void close()
 	SDL_Quit();
 }
 
-bool checkCollision( SDL_Rect a, SDL_Rect b )
-{
-    //The sides of the rectangles
-    int leftA, leftB;
-    int rightA, rightB;
-    int topA, topB;
-    int bottomA, bottomB;
-
-    //Calculate the sides of rect A
-    leftA = a.x;
-    rightA = a.x + a.w;
-    topA = a.y;
-    bottomA = a.y + a.h;
-
-    //Calculate the sides of rect B
-    leftB = b.x;
-    rightB = b.x + b.w;
-    topB = b.y;
-    bottomB = b.y + b.h;
-
-    //If any of the sides from A are outside of B
-    if( bottomA <= topB )
-    {
-        return false;
-    }
-
-    if( topA >= bottomB )
-    {
-        return false;
-    }
-
-    if( rightA <= leftB )
-    {
-        return false;
-    }
-
-    if( leftA >= rightB )
-    {
-        return false;
-    }
-
-    //If none of the sides from A are outside B
-    return true;
-}
-
 int main( int argc, char* args[] )
 {
-	/*
-	SDL_Rect background_RECT;
 
-	background_RECT.x = 0;
-	background_RECT.y = 0;
-	background_RECT.w = 800;
-	background_RECT.h = 600;
-	
-	
-	
-	SDL_Renderer *ren = SDL_CreateRenderer(gWindow, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
-	if (ren == NULL)
-	{
-		std::cout << "SDL_CreateRenderer Error: " << SDL_GetError() << std::endl;
-		return 1;
-	}
-	
-	SDL_Surface *BMP_background = SDL_LoadBMP("res/sample.bmp");
-	if (BMP_background == NULL)
-	{
-		std::cout << "SDL_LoadBMP Error: " << SDL_GetError() << std::endl;
-		return 1;
-	}
-	
-	SDL_Texture *background = SDL_CreateTextureFromSurface(ren, BMP_background);
-	SDL_FreeSurface(BMP_background); //Очищение памяти поверхности
-	
-	SDL_RenderClear(ren); //Очистка рендера
-	SDL_RenderCopy(ren, background, NULL, &background_RECT); //Копируем в рендер фон
-	SDL_RenderPresent(ren); //Погнали!!
-	*/
+    bool inside = true;
 	//Start up SDL and create window
 	if( !init() )
 	{
@@ -505,31 +536,18 @@ int main( int argc, char* args[] )
 	}
 	else
 	{
-		//Load media
 		if( !loadMedia() )
 		{
 			printf( "Failed to load media!\n" );
 		}
 		else
-		{	
+		{
 			//Main loop flag
 			bool quit = false;
 
 			//Event handler
 			SDL_Event e;
 
-			//The dot that will be moving around on the screen
-			Dot dot;
-
-			//Set the wall
-			SDL_Rect wall;
-			{
-			wall.x = 200;
-			wall.y = 40;
-			wall.w = 40;
-			wall.h = 400;
-			}
-			
 			//While application is running
 			while( !quit )
 			{
@@ -542,31 +560,37 @@ int main( int argc, char* args[] )
 						quit = true;
 					}
 
-					//Handle input for the dot
-					dot.handleEvent( e );
-				}
+					//Handle button events
+					for( int i = 0; i < 4; ++i )
+					{
 
-				//Move the dot and check collision
-				dot.move( wall );
+						gButtons[ i ].handleEvent( &e );
+					}
+				}
 
 				//Clear screen
 				SDL_SetRenderDrawColor( gRenderer, 0xFF, 0xFF, 0xFF, 0xFF );
 				SDL_RenderClear( gRenderer );
 
-				//Render wall
-				SDL_SetRenderDrawColor( gRenderer, 0x00, 0x00, 0x00, 0xFF );		
-				SDL_RenderDrawRect( gRenderer, &wall );
-				
-				//Render dot
-				dot.render();
+				//Render background texture to screen
+				gBackgroundTexture.render( 0, 0 );
 
-				//Update screen
+				//Render Foo' to the screen
+				gFooTexture.render( 0, 0 );
+
+				gButtonSpriteSheetTexture.loadFromFile( "res/menu/control.png" );
+				for( int i = 0; i < TOTAL_BUTTONS; ++i )
+				{
+					gButtons[ 0 ].render();
+				}
+
 				SDL_RenderPresent( gRenderer );
 			}
+
+
 		}
 	}
 
-	//Free resources and close SDL
 	close();
 
 	return 0;
